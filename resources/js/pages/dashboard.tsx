@@ -340,8 +340,8 @@ export default function Dashboard({
                                             <td className="whitespace-nowrap px-6 py-5">
                                                 <span
                                                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${payout.status === 'Paid'
-                                                            ? 'bg-green-500/10 text-green-400'
-                                                            : 'bg-yellow-500/10 text-yellow-400'
+                                                        ? 'bg-green-500/10 text-green-400'
+                                                        : 'bg-yellow-500/10 text-yellow-399'
                                                         }`}
                                                 >
                                                     {payout.status === 'Paid' ? (
