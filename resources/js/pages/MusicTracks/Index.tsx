@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Music, Search, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Track {
     id: number;
@@ -16,17 +16,42 @@ interface Track {
 }
 
 interface Props {
-    tracks: Track[];
+    tracks: {
+        data: Track[];
+        links: { active: boolean; label: string; url: string | null }[];
+        total: number;
+    };
+    filters: { search: string };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Music Tracks', href: '/music-tracks' },
 ];
 
-export default function TracksIndex({ tracks }: Props) {
-    const [search, setSearch] = useState('');
+export default function TracksIndex({ tracks, filters }: Props) {
+    const [search, setSearch] = useState(filters.search);
+    const previousSearch = useRef(search);
 
-    const filteredTracks = tracks.filter((track) =>
+    useEffect(() => {
+        if (previousSearch.current === search) {
+            return;
+        }
+        previousSearch.current = search;
+
+        const timeout = setTimeout(() => {
+            const query = search.trim() ? { search: search.trim() } : {};
+            router.get('/music-tracks', query, {
+                only: ['tracks', 'filters'],
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            });
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [search]);
+
+    const filteredTracks = tracks.data.filter((track) =>
         `${track.track_title} ${track.track_isrc} ${track.artist?.artist_name ?? ''}`
             .toLowerCase()
             .includes(search.toLowerCase())
@@ -76,7 +101,7 @@ export default function TracksIndex({ tracks }: Props) {
                             </p>
 
                             <h2 className="mt-2 text-3xl font-bold">
-                                {tracks.length}
+                                {tracks.total}
                             </h2>
                         </div>
 
@@ -166,6 +191,28 @@ export default function TracksIndex({ tracks }: Props) {
                         </table>
                     </div>
                 </div>
+
+                <nav aria-label="Music track pages" className="flex flex-wrap gap-2">
+                    {tracks.links.map((link, index) =>
+                        link.url ? (
+                            <Link
+                                className={`rounded border border-white/10 px-3 py-1 ${link.active ? 'bg-orange-500 text-black' : 'text-white'}`}
+                                href={link.url}
+                                key={`${link.label}-${index}`}
+                                preserveScroll
+                            >
+                                {link.label.replace('&laquo;', '«').replace('&raquo;', '»')}
+                            </Link>
+                        ) : (
+                            <span
+                                className="rounded border border-white/10 px-3 py-1 text-gray-500"
+                                key={`${link.label}-${index}`}
+                            >
+                                {link.label.replace('&laquo;', '«').replace('&raquo;', '»')}
+                            </span>
+                        ),
+                    )}
+                </nav>
             </div>
         </AppLayout>
     );

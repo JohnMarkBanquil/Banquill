@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RoyaltyPayout extends Model
 {
@@ -26,7 +27,7 @@ class RoyaltyPayout extends Model
         ];
     }
 
-    public function musicTrack()
+    public function musicTrack(): BelongsTo
     {
         return $this->belongsTo(MusicTrack::class, 'track_id');
     }

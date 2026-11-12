@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MusicTrack extends Model
 {
@@ -12,21 +14,12 @@ class MusicTrack extends Model
         'artist_id',
     ];
 
-    protected static function booted(): void
-    {
-        static::saving(function ($track) {
-            $track->track_isrc = strtoupper(
-                trim($track->track_isrc)
-            );
-        });
-    }
-
-    public function artist()
+    public function artist(): BelongsTo
     {
         return $this->belongsTo(Artist::class, 'artist_id');
     }
 
-    public function royaltyPayouts()
+    public function royaltyPayouts(): HasMany
     {
         return $this->hasMany(RoyaltyPayout::class, 'track_id');
     }

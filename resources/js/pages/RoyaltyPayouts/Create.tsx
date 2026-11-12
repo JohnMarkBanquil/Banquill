@@ -22,7 +22,6 @@ export default function Create({ tracks }: Props) {
         total_streams: '',
         rate_per_stream: '',
         platform_commission: '',
-        payout_status: 'Pending',
     });
 
     const streams = Number(data.total_streams) || 0;
@@ -171,25 +170,11 @@ export default function Create({ tracks }: Props) {
                             )}
                         </div>
 
-                        <div>
-                            <label className="mb-2 block text-sm text-gray-300">
-                                Payout Status
-                            </label>
-
-                            <select
-                                value={data.payout_status}
-                                onChange={(e) => setData('payout_status', e.target.value)}
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 p-3 text-white"
-                            >
-                                <option value="Pending">Pending</option>
-                                <option value="Paid">Paid</option>
-                            </select>
-
-                            {errors.payout_status && (
-                                <p className="mt-1 text-sm text-red-400">
-                                    {errors.payout_status}
-                                </p>
-                            )}
+                        <div className="rounded-lg border border-zinc-700 bg-zinc-800 p-3">
+                            <p className="text-sm text-gray-400">Payout Status</p>
+                            <p className="mt-1 font-medium text-yellow-400">
+                                Pending (set automatically)
+                            </p>
                         </div>
 
                         <button

@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Users, Search, Pencil, Trash2, Music } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -13,17 +13,42 @@ interface Artist {
 }
 
 interface Props {
-    artists: Artist[];
+    artists: {
+        data: Artist[];
+        links: { active: boolean; label: string; url: string | null }[];
+        total: number;
+    };
+    filters: { search: string };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Artists', href: '/artists' },
 ];
 
-export default function ArtistsIndex({ artists }: Props) {
-    const [search, setSearch] = useState('');
+export default function ArtistsIndex({ artists, filters }: Props) {
+    const [search, setSearch] = useState(filters.search);
+    const previousSearch = useRef(search);
 
-    const filteredArtists = artists.filter((artist) =>
+    useEffect(() => {
+        if (previousSearch.current === search) {
+            return;
+        }
+        previousSearch.current = search;
+
+        const timeout = setTimeout(() => {
+            const query = search.trim() ? { search: search.trim() } : {};
+            router.get('/artists', query, {
+                only: ['artists', 'filters'],
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            });
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [search]);
+
+    const filteredArtists = artists.data.filter((artist) =>
         `${artist.artist_name} ${artist.artist_code}`
             .toLowerCase()
             .includes(search.toLowerCase())
@@ -74,7 +99,7 @@ export default function ArtistsIndex({ artists }: Props) {
                                 </p>
 
                                 <h2 className="mt-2 text-3xl font-bold">
-                                    {artists.length}
+                                    {artists.total}
                                 </h2>
                             </div>
 
@@ -90,14 +115,15 @@ export default function ArtistsIndex({ artists }: Props) {
                                 </p>
 
                                 <h2 className="mt-2 text-3xl font-bold">
-                                    {filteredArtists.length}
+                                    {artists.total}
                                 </h2>
                             </div>
 
                             <Music size={28} className="text-orange-500" />
                         </div>
                     </div>
-                </div>
+
+                    </div>
 
                 <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#151518]">
 
@@ -117,6 +143,28 @@ export default function ArtistsIndex({ artists }: Props) {
                             />
                         </div>
                     </div>
+
+                    <nav aria-label="Artist pages" className="flex flex-wrap gap-2">
+                        {artists.links.map((link, index) =>
+                            link.url ? (
+                                <Link
+                                    className={`rounded border border-white/10 px-3 py-1 ${link.active ? 'bg-orange-500 text-black' : 'text-white'}`}
+                                    href={link.url}
+                                    key={`${link.label}-${index}`}
+                                    preserveScroll
+                                >
+                                    {link.label.replace('&laquo;', '«').replace('&raquo;', '»')}
+                                </Link>
+                            ) : (
+                                <span
+                                    className="rounded border border-white/10 px-3 py-1 text-gray-500"
+                                    key={`${link.label}-${index}`}
+                                >
+                                    {link.label.replace('&laquo;', '«').replace('&raquo;', '»')}
+                                </span>
+                            ),
+                        )}
+                    </nav>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">

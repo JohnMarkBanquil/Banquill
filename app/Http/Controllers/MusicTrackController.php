@@ -2,20 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreMusicTrackRequest;
+use App\Http\Requests\UpdateMusicTrackRequest;
 use App\Models\Artist;
 use App\Models\MusicTrack;
+use App\Services\MusicTrackService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class MusicTrackController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->query('search', '');
+        $search = is_string($search) ? trim($search) : '';
+
         return Inertia::render('MusicTracks/Index', [
-            'tracks' => MusicTrack::with('artist')
+            'tracks' => MusicTrack::query()
+                ->with('artist:id,artist_code,artist_name')
+                ->when($search !== '', function (Builder $query) use ($search): void {
+                    $query->where(function (Builder $query) use ($search): void {
+                        $query->where('track_title', 'like', "%{$search}%")
+                            ->orWhere('track_isrc', 'like', "%{$search}%")
+                            ->orWhereHas('artist', function (Builder $query) use ($search): void {
+                                $query->where('artist_name', 'like', "%{$search}%");
+                            });
+                    });
+                })
                 ->latest()
-                ->get(),
+                ->paginate(15)
+                ->withQueryString(),
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -28,34 +46,24 @@ class MusicTrackController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'track_title' => 'required|string|max:255',
-            'track_isrc' => 'required|string|max:20|unique:music_tracks,track_isrc',
-            'artist_id' => 'required|exists:artists,id',
-        ]);
+    public function store(
+        StoreMusicTrackRequest $request,
+        MusicTrackService $service
+    ) {
+        $service->createTrack($request->validated());
 
-        $validated['track_isrc'] = strtoupper(
-            trim($validated['track_isrc'])
-        );
-
-        // Check uniqueness after converting to uppercase.
-        $request->merge([
-            'track_isrc' => $validated['track_isrc'],
-        ]);
-
-        $request->validate([
-            'track_isrc' => 'unique:music_tracks,track_isrc',
-        ]);
-
-        DB::transaction(function () use ($validated) {
-            MusicTrack::create($validated);
-        });
-
-        return redirect()
-            ->route('music-tracks.index')
+        return to_route('music-tracks.index')
             ->with('success', 'Music track added successfully!');
+    }
+
+    public function show(MusicTrack $music_track)
+    {
+        return Inertia::render('MusicTracks/Show', [
+            'track' => $music_track->load([
+                'artist:id,artist_code,artist_name',
+                'royaltyPayouts:id,track_id',
+            ]),
+        ]);
     }
 
     public function edit(MusicTrack $music_track)
@@ -68,38 +76,25 @@ class MusicTrackController extends Controller
         ]);
     }
 
-    public function update(Request $request, MusicTrack $music_track)
-    {
-        $validated = $request->validate([
-            'track_title' => 'required|string|max:255',
-            'track_isrc' => 'required|string|max:20|unique:music_tracks,track_isrc,' . $music_track->id,
-            'artist_id' => 'required|exists:artists,id',
-        ]);
-
-        $validated['track_isrc'] = strtoupper(
-            trim($validated['track_isrc'])
+    public function update(
+        UpdateMusicTrackRequest $request,
+        int $id,
+        MusicTrackService $service
+    ) {
+        $service->updateTrack(
+            MusicTrack::findOrFail($id),
+            $request->validated()
         );
 
-        $music_track->update($validated);
-
-        return redirect()
-            ->route('music-tracks.index')
+        return to_route('music-tracks.index')
             ->with('success', 'Music track updated successfully!');
     }
 
-    public function destroy(MusicTrack $music_track)
+    public function destroy(MusicTrack $music_track, MusicTrackService $service)
     {
-        if ($music_track->royaltyPayouts()->exists()) {
-            return back()->with(
-                'error',
-                'Cannot delete a track with existing royalty payouts.'
-            );
-        }
+        $service->deleteTrack($music_track);
 
-        $music_track->delete();
-
-        return redirect()
-            ->route('music-tracks.index')
+        return to_route('music-tracks.index')
             ->with('success', 'Music track deleted successfully!');
     }
 }

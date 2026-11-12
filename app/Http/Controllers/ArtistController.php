@@ -2,52 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreArtistRequest;
+use App\Http\Requests\UpdateArtistRequest;
 use App\Models\Artist;
+use App\Services\ArtistService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class ArtistController extends Controller
 {
-    // Display all artists
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->query('search', '');
+        $search = is_string($search) ? trim($search) : '';
+
         return Inertia::render('Artists/Index', [
-            'artists' => Artist::latest()->get(),
+            'artists' => Artist::query()
+                ->with(['musicTracks:id,artist_id'])
+                ->withCount('musicTracks')
+                ->when($search !== '', function (Builder $query) use ($search): void {
+                    $query->where(function (Builder $query) use ($search): void {
+                        $query->where('artist_name', 'like', "%{$search}%")
+                            ->orWhere('artist_code', 'like', "%{$search}%");
+                    });
+                })
+                ->latest()
+                ->paginate(15)
+                ->withQueryString(),
+            'filters' => ['search' => $search],
         ]);
     }
 
-    // Show create artist page
     public function create()
     {
         return Inertia::render('Artists/Create');
     }
 
-    // Save new artist
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'artist_name' => 'required|string|max:255',
-            'bank_account' => 'required|string|max:100',
-        ]);
+    public function store(
+        StoreArtistRequest $request,
+        ArtistService $service
+    ) {
+        $service->createArtist($request->validated());
 
-        // Remove spaces and special characters from bank account
-        $validated['bank_account'] = preg_replace(
-            '/[^A-Za-z0-9]/',
-            '',
-            $validated['bank_account']
-        );
-
-        DB::transaction(function () use ($validated) {
-            Artist::create($validated);
-        });
-
-        return redirect()
-            ->route('artists.index')
+        return to_route('artists.index')
             ->with('success', 'Artist registered successfully!');
     }
 
-    // Show edit artist page
+    public function show(Artist $artist)
+    {
+        return Inertia::render('Artists/Show', [
+            'artist' => $artist->load('musicTracks:id,artist_id,track_title'),
+        ]);
+    }
+
     public function edit(Artist $artist)
     {
         return Inertia::render('Artists/Edit', [
@@ -55,43 +63,25 @@ class ArtistController extends Controller
         ]);
     }
 
-    // Update artist
-    public function update(Request $request, Artist $artist)
-    {
-        $validated = $request->validate([
-            'artist_name' => 'required|string|max:255',
-            'bank_account' => 'required|string|max:100',
-        ]);
-
-        $validated['bank_account'] = preg_replace(
-            '/[^A-Za-z0-9]/',
-            '',
-            $validated['bank_account']
+    public function update(
+        UpdateArtistRequest $request,
+        int $id,
+        ArtistService $service
+    ) {
+        $service->updateArtist(
+            Artist::findOrFail($id),
+            $request->validated()
         );
 
-        DB::transaction(function () use ($validated, $artist) {
-            $artist->update($validated);
-        });
-
-        return redirect()
-            ->route('artists.index')
+        return to_route('artists.index')
             ->with('success', 'Artist updated successfully!');
     }
 
-    // Delete artist
-    public function destroy(Artist $artist)
+    public function destroy(Artist $artist, ArtistService $service)
     {
-        if ($artist->musicTracks()->exists()) {
-            return back()->with(
-                'error',
-                'Cannot delete an artist who has music tracks.'
-            );
-        }
+        $service->deleteArtist($artist);
 
-        $artist->delete();
-
-        return redirect()
-            ->route('artists.index')
+        return to_route('artists.index')
             ->with('success', 'Artist deleted successfully!');
     }
 }

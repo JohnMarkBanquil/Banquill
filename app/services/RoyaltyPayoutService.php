@@ -11,7 +11,10 @@ class RoyaltyPayoutService
     public function create(array $data): RoyaltyPayout
     {
         return DB::transaction(function () use ($data) {
-            return $this->savePayout(new RoyaltyPayout(), $data);
+            return $this->savePayout(
+                new RoyaltyPayout,
+                array_merge($data, ['payout_status' => 'Pending'])
+            );
         });
     }
 
@@ -22,6 +25,11 @@ class RoyaltyPayoutService
         return DB::transaction(function () use ($payout, $data) {
             return $this->savePayout($payout, $data);
         });
+    }
+
+    public function delete(RoyaltyPayout $payout): void
+    {
+        DB::transaction(fn () => $payout->delete());
     }
 
     private function savePayout(

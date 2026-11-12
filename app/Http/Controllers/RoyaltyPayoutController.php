@@ -27,6 +27,13 @@ class RoyaltyPayoutController extends Controller
         ]);
     }
 
+    public function show(RoyaltyPayout $royalty_payout)
+    {
+        return Inertia::render('RoyaltyPayouts/Show', [
+            'payout' => $royalty_payout->load('musicTrack.artist'),
+        ]);
+    }
+
     public function store(
         StoreRoyaltyPayoutRequest $request,
         RoyaltyPayoutService $service
@@ -56,9 +63,11 @@ class RoyaltyPayoutController extends Controller
             ->with('success', 'Royalty payout updated successfully.');
     }
 
-    public function destroy(RoyaltyPayout $royalty_payout)
-    {
-        $royalty_payout->delete();
+    public function destroy(
+        RoyaltyPayout $royalty_payout,
+        RoyaltyPayoutService $service
+    ) {
+        $service->delete($royalty_payout);
 
         return redirect()->route('royalty-payouts.index')
             ->with('success', 'Royalty payout deleted successfully.');
