@@ -71,5 +71,6 @@ class RoyaltyPayoutController extends Controller
 
         return redirect()->route('royalty-payouts.index')
             ->with('success', 'Royalty payout deleted successfully.');
+            
     }
 }

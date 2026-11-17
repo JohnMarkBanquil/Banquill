@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\MusicTrack;
 use App\Models\RoyaltyPayout;
+use App\Models\User;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
@@ -18,21 +19,23 @@ class DashboardController extends Controller
         $totalStreams = RoyaltyPayout::sum('total_streams');
         $totalPayouts = RoyaltyPayout::sum('net_payout');
 
-        // Get the latest payout records
-        $recentPayouts = RoyaltyPayout::with('musicTrack.artist')
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function ($payout) {
-                return [
-                    'id' => $payout->id,
-                    'artist' => $payout->musicTrack?->artist?->artist_name ?? 'Unknown Artist',
-                    'track' => $payout->musicTrack?->track_title ?? 'Unknown Track',
-                    'streams' => $payout->total_streams,
-                    'amount' => $payout->net_payout,
-                    'status' => $payout->payout_status,
-                ];
-            });
+        $recentPayouts = [];
+        if (auth()->user()->role === User::ROLE_ADMIN) {
+            $recentPayouts = RoyaltyPayout::with('musicTrack.artist')
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($payout) {
+                    return [
+                        'id' => $payout->id,
+                        'artist' => $payout->musicTrack?->artist?->artist_name ?? 'Unknown Artist',
+                        'track' => $payout->musicTrack?->track_title ?? 'Unknown Track',
+                        'streams' => $payout->total_streams,
+                        'amount' => $payout->net_payout,
+                        'status' => $payout->payout_status,
+                    ];
+                });
+        }
 
         // Get actual monthly payout totals for the last 7 months
         $startDate = Carbon::now()->startOfMonth()->subMonths(6);

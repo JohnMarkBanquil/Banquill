@@ -14,6 +14,7 @@ type LoginForm = Record<string, string | boolean> & {
     email: string;
     password: string;
     remember: boolean;
+    role: 'admin' | 'user';
 };
 
 interface LoginProps {
@@ -26,6 +27,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         email: '',
         password: '',
         remember: false,
+        role: 'user',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -59,20 +61,36 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
                     <form className="flex flex-col gap-5" onSubmit={submit}>
                         <div className="grid gap-2">
+                            <Label htmlFor="role" className="text-sm font-medium text-zinc-200">
+                                Sign in as
+                            </Label>
+                            <select
+                                id="role"
+                                value={data.role}
+                                onChange={(e) => setData('role', e.target.value === 'admin' ? 'admin' : 'user')}
+                                className="h-12 rounded-md border border-zinc-700 bg-zinc-900 px-3 text-white focus-visible:border-orange-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500"
+                            >
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <InputError message={errors.role} />
+                        </div>
+
+                        <div className="grid gap-2">
                             <Label htmlFor="email" className="text-sm font-medium text-zinc-200">
-                                Email address
+                                Email or username
                             </Label>
 
                             <Input
                                 id="email"
-                                type="email"
+                                type="text"
                                 required
                                 autoFocus
                                 tabIndex={1}
-                                autoComplete="email"
+                                autoComplete="username"
                                 value={data.email}
                                 onChange={(e) => setData('email', e.target.value)}
-                                placeholder="you@example.com"
+                                placeholder="you@example.com or admin"
                                 className="h-12 border-zinc-700 bg-zinc-900 text-white placeholder:text-zinc-500 focus-visible:border-orange-500 focus-visible:ring-orange-500"
                             />
 

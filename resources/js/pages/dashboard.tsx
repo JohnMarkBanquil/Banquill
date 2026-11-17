@@ -1,7 +1,8 @@
 
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { type SharedData } from '@/types';
 import {
     Users,
     Music,
@@ -55,6 +56,8 @@ export default function Dashboard({
     recentPayouts,
     monthlyPayouts,
 }: Props) {
+    const isAdmin = usePage<SharedData>().props.auth.user.role === 'admin';
+
     const formatNumber = (value: number) =>
         Number(value).toLocaleString('en-PH');
 
@@ -122,13 +125,13 @@ export default function Dashboard({
                         </p>
                     </div>
 
-                    <Link
+                    {isAdmin && <Link
                         href="/royalty-payouts/create"
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-orange-400"
                     >
                         <Plus size={18} />
                         Add Royalty Payout
-                    </Link>
+                    </Link>}
                 </div>
 
                 {/* STATISTICS */}
@@ -165,7 +168,7 @@ export default function Dashboard({
                 <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
 
                     {/* ROYALTY OVERVIEW */}
-                    <div className="rounded-2xl border border-white/10 bg-[#151518] p-6 xl:col-span-2">
+                    <div className={`rounded-2xl border border-white/10 bg-[#151518] p-6 ${isAdmin ? 'xl:col-span-2' : 'xl:col-span-3'}`}>
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-bold">
@@ -212,7 +215,7 @@ export default function Dashboard({
                     </div>
 
                     {/* QUICK ACTIONS */}
-                    <div className="rounded-2xl border border-white/10 bg-[#151518] p-6">
+                    {isAdmin && <div className="rounded-2xl border border-white/10 bg-[#151518] p-6">
                         <h2 className="text-lg font-bold">
                             Quick Actions
                         </h2>
@@ -274,11 +277,11 @@ export default function Dashboard({
                                 <ArrowUpRight size={18} className="text-gray-400" />
                             </Link>
                         </div>
-                    </div>
+                    </div>}
                 </div>
 
                 {/* RECENT PAYOUTS */}
-                <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#151518]">
+                {isAdmin && <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#151518]">
                     <div className="flex flex-col justify-between gap-3 border-b border-white/10 p-6 sm:flex-row sm:items-center">
                         <div>
                             <h2 className="text-lg font-bold">
@@ -367,7 +370,7 @@ export default function Dashboard({
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </div>}
 
                 {/* FOOTER */}
                 <div className="mt-8 flex flex-col justify-between gap-2 border-t border-white/10 pt-5 text-xs text-gray-500 sm:flex-row">

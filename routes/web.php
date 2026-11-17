@@ -18,7 +18,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware(['verified'])
         ->name('dashboard');
+});
 
+Route::middleware(['auth', 'admin'])->group(function () {
     // Artist management
     Route::resource('artists', ArtistController::class);
 
